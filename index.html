@@ -1,0 +1,584 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Marker Accessibility Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Atkinson+Hyperlegible+Next:ital,wght@0,400;0,600;0,800;1,400&display=swap">
+<style>
+/* Layout: one narrow reading column; the monthly cycle is a vertical flow with a "who does it" tag per step and the ticket status beside it. Supporting panels follow. */
+:root {
+  --bg: #F5F6F9;
+  --surface: #FFFFFF;
+  --ink: #161D2B;
+  --muted: #525C6E;
+  --line: #D9DEE7;
+  --hl: #FFE45C;
+  --team: #2A57C4; --team-soft: #E7EDFB;
+  --auto: #6F42C8; --auto-soft: #F0E9FC;
+  --client: #964806; --client-soft: #FBEEDF;
+  --crit: #B3261E; --serious: #B85400; --moderate: #7D6A00; --minor: #56606E;
+  --ok: #1F7A45;
+  --font: "Atkinson Hyperlegible Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F131A; --surface: #171C25; --ink: #E8ECF3; --muted: #A3ACBB; --line: #2B3342;
+    --hl: rgba(255, 214, 10, .34);
+    --team: #93B1FF; --team-soft: #1B2640;
+    --auto: #C5A8FF; --auto-soft: #251D3A;
+    --client: #F4B170; --client-soft: #33251A;
+    --crit: #FF8A80; --serious: #FFB066; --moderate: #E3CC55; --minor: #AEB7C4;
+    --ok: #6FD39A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F131A; --surface: #171C25; --ink: #E8ECF3; --muted: #A3ACBB; --line: #2B3342;
+  --hl: rgba(255, 214, 10, .34);
+  --team: #93B1FF; --team-soft: #1B2640;
+  --auto: #C5A8FF; --auto-soft: #251D3A;
+  --client: #F4B170; --client-soft: #33251A;
+  --crit: #FF8A80; --serious: #FFB066; --moderate: #E3CC55; --minor: #AEB7C4;
+  --ok: #6FD39A;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 17px; line-height: 1.55; }
+.wrap { max-width: 880px; margin: 0 auto; padding-inline: 20px; padding-block: 48px 72px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 800; letter-spacing: -.01em; }
+h2 { font-size: 1.6rem; font-weight: 800; }
+h3 { font-size: 1.08rem; font-weight: 600; }
+p { margin: 0; }
+a { color: var(--team); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--team); outline-offset: 3px; border-radius: 4px; }
+.hl { background: linear-gradient(transparent 58%, var(--hl) 58%, var(--hl) 92%, transparent 92%); padding: 0 .1em; }
+.eyebrow { font-family: var(--mono); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 1.2rem; color: var(--muted); max-width: 60ch; }
+.muted { color: var(--muted); }
+section { display: grid; gap: 20px; padding-block: 44px 0; }
+.section-head { display: grid; gap: 8px; }
+.section-head p { max-width: 62ch; color: var(--muted); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; }
+
+/* Hero */
+header { display: grid; gap: 18px; }
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+.fact { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 4px; align-content: start; }
+.fact b { font-family: var(--mono); font-size: 1.7rem; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fact span { color: var(--muted); font-size: .92rem; line-height: 1.35; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: .95rem; padding-top: 6px; }
+
+/* Tools */
+.tools { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .tools { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tool { display: grid; gap: 4px; }
+.tool b { font-weight: 600; }
+.tool span { color: var(--muted); font-size: .92rem; line-height: 1.4; }
+
+/* Who legend */
+.legend { display: flex; flex-wrap: wrap; gap: 10px 20px; font-size: .95rem; }
+.who { display: inline-flex; align-items: center; gap: 8px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.dot.team { background: var(--team); } .dot.auto { background: var(--auto); } .dot.client { background: var(--client); }
+
+/* Flow */
+.flow { list-style: none; margin: 0; padding: 0; display: grid; }
+.step { display: grid; grid-template-columns: 44px minmax(0, 1fr) 170px; gap: 18px; position: relative; padding-bottom: 30px; }
+.step::before { content: ""; position: absolute; left: 21px; top: 48px; bottom: 6px; width: 2px; background: var(--line); }
+.step::after { content: ""; position: absolute; left: 16px; bottom: 2px; border: 6px solid transparent; border-top: 8px solid var(--line); border-bottom: 0; }
+.num { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: 1.05rem; border: 2px solid currentColor; background: var(--surface); position: relative; z-index: 1; }
+.team .num { color: var(--team); } .auto .num { color: var(--auto); } .client .num { color: var(--client); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; display: grid; gap: 6px; }
+.tag { font-family: var(--mono); font-size: .74rem; letter-spacing: .07em; text-transform: uppercase; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; }
+.team .tag { color: var(--team); } .auto .tag { color: var(--auto); } .client .tag { color: var(--client); }
+.card p { color: var(--muted); }
+.status { align-self: start; padding-top: 8px; display: grid; gap: 4px; justify-items: start; }
+.status small { font-family: var(--mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.pill { font-size: .88rem; font-weight: 600; padding: 3px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); white-space: nowrap; }
+.pill.s1 { border-color: var(--auto); color: var(--auto); }
+.pill.s2, .pill.s3, .pill.s4 { border-color: var(--team); color: var(--team); }
+.pill.s5 { border-color: var(--client); color: var(--client); }
+
+/* Decision */
+.decision .num { border-radius: 6px; width: 30px; height: 30px; transform: rotate(45deg); margin: 7px; border-color: var(--muted); color: var(--muted); }
+.decision .num span { transform: rotate(-45deg); font-size: .9rem; }
+.decision::before { left: 21px; top: 44px; }
+.branches { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.branch { border: 1px dashed var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; }
+.branch b { font-weight: 600; }
+.branch b.yes { color: var(--ok); } .branch b.no { color: var(--serious); }
+.branch span { color: var(--muted); font-size: .94rem; line-height: 1.4; }
+
+/* Loop */
+.loop { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 18px; align-items: center; }
+.loop svg { width: 44px; height: 44px; color: var(--muted); }
+.loop .card { border-style: dashed; background: transparent; }
+
+/* Budget */
+.bar { display: flex; height: 46px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.seg { display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: .95rem; color: var(--ink); min-width: 0; }
+.seg.full { background: var(--team-soft); flex: 100; }
+.seg.re { background: var(--auto-soft); flex: 40; }
+.seg.buf { background: var(--client-soft); flex: 50; }
+.seg.spare { background: var(--surface); flex: 60; background-image: repeating-linear-gradient(135deg, transparent 0 7px, var(--line) 7px 8px); }
+.scale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 6px; }
+.budget-key { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.key { display: grid; gap: 2px; align-content: start; }
+.key .sw { width: 22px; height: 12px; border-radius: 3px; border: 1px solid var(--line); margin-bottom: 4px; }
+.key b { font-family: var(--mono); font-size: 1.2rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.key span { font-size: .92rem; color: var(--muted); line-height: 1.35; }
+.note { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 18px; }
+.note svg { width: 22px; height: 22px; color: var(--serious); margin-top: 2px; }
+
+/* Pages */
+.pages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.page { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 2px; align-content: start; }
+.page b { font-family: var(--mono); font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.page strong { font-weight: 600; font-size: .98rem; }
+.page span { font-size: .84rem; color: var(--muted); line-height: 1.35; }
+
+/* Calendar */
+.weeks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.week { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 12px; align-content: start; }
+.week h3 { font-family: var(--mono); font-size: .82rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.slot { display: grid; gap: 5px; }
+.slot small { font-size: .8rem; color: var(--muted); }
+.chip { font-size: .9rem; padding: 5px 9px; border-radius: 6px; line-height: 1.3; }
+.chip.first { background: var(--team-soft); }
+.chip.re { background: var(--auto-soft); }
+.chip.buf { background: transparent; border: 1px dashed var(--line); color: var(--muted); }
+.chip.none { color: var(--muted); padding-left: 0; }
+
+/* Ticket */
+.pipeline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pipeline .arrow { color: var(--muted); font-family: var(--mono); }
+.ticket { display: grid; gap: 16px; }
+.ticket-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 20px; align-items: baseline; }
+.fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.field { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; }
+.field small { font-size: .8rem; color: var(--muted); }
+.field b { font-weight: 600; }
+.todos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.todo { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 12px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.box { width: 18px; height: 18px; border: 2px solid var(--muted); border-radius: 4px; }
+.todo span { font-size: .88rem; color: var(--muted); display: block; }
+.sev { font-family: var(--mono); font-size: .78rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.sev.crit { color: var(--crit); } .sev.serious { color: var(--serious); } .sev.moderate { color: var(--moderate); } .sev.minor { color: var(--minor); }
+.example { font-family: var(--mono); font-size: .74rem; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); border: 1px dashed var(--line); border-radius: 4px; padding: 1px 6px; }
+
+/* Reports */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.report { display: grid; gap: 10px; align-content: start; }
+.report ul, .checks, .steps-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.report li { padding-left: 20px; position: relative; }
+.report li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 8px; height: 2px; background: var(--muted); }
+
+/* Health checks */
+.checks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; }
+.checks li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; }
+.checks svg { width: 20px; height: 20px; color: var(--ok); margin-top: 2px; }
+
+/* Behind the scenes */
+.pipe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; }
+.hop { position: relative; padding: 14px 22px 14px 14px; display: grid; gap: 4px; align-content: start; }
+.hop + .hop { border-left: 1px solid var(--line); }
+.hop b { font-weight: 600; }
+.hop span { font-size: .92rem; color: var(--muted); line-height: 1.4; }
+.hop .eyebrow { font-size: .72rem; }
+.fixes { display: grid; gap: 12px; }
+.fix { display: grid; gap: 2px; }
+.fix b { font-weight: 600; }
+.fix span { color: var(--muted); font-size: .95rem; }
+
+.steps-list { counter-reset: s; }
+.steps-list li { counter-increment: s; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; }
+.steps-list li::before { content: counter(s); font-family: var(--mono); font-weight: 600; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--muted); color: var(--muted); display: grid; place-items: center; font-size: .82rem; }
+
+.refs { display: grid; gap: 10px; }
+.refs a { font-weight: 600; }
+footer { padding-top: 48px; color: var(--muted); font-size: .9rem; }
+
+@media (max-width: 760px) {
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .step { grid-template-columns: 36px minmax(0, 1fr); gap: 14px; }
+  .step::before { left: 17px; top: 40px; }
+  .step::after { left: 12px; }
+  .num { width: 36px; height: 36px; font-size: .95rem; }
+  .decision .num { width: 26px; height: 26px; margin: 5px; }
+  .status { grid-column: 2; padding-top: 0; grid-auto-flow: column; align-items: center; gap: 8px; }
+  .loop { grid-template-columns: 36px minmax(0, 1fr); gap: 14px; }
+  .loop svg { width: 36px; height: 36px; }
+  .budget-key { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .weeks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .two, .checks { grid-template-columns: 1fr; }
+  .pipe { grid-template-columns: 1fr 1fr; }
+  .hop:nth-child(3) { border-left: 0; }
+  .hop:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .fields { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 440px) {
+  body { font-size: 16px; }
+  .wrap { padding-inline: 16px; }
+  .branches, .weeks, .pipe { grid-template-columns: 1fr; }
+  .hop + .hop { border-left: 0; border-top: 1px solid var(--line); }
+  .seg { font-size: .8rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Manufactur · Accessibility program</span>
+    <h1>How our monthly <span class="hl">accessibility check-up</span> works</h1>
+    <p class="lede">Every active site gets one accessibility scan a month. We fix what it finds, confirm the fixes, and report back to the client. This page walks through it start to finish.</p>
+    <div class="facts">
+      <div class="fact"><b>1</b><span>scan per site, per month</span></div>
+      <div class="fact"><b>20</b><span>pages checked on each site</span></div>
+      <div class="fact"><b>250</b><span>pages a month, shared by all sites</span></div>
+      <div class="fact"><b>1–2</b><span>weeks for one full cycle</span></div>
+    </div>
+    <nav class="toc" aria-label="On this page">
+      <a href="#cycle">The monthly cycle</a>
+      <a href="#budget">Page budget</a>
+      <a href="#pages">Which pages</a>
+      <a href="#calendar">Calendar</a>
+      <a href="#ticket">The ticket</a>
+      <a href="#reports">Client reports</a>
+      <a href="#auto">Behind the scenes</a>
+      <a href="#refs">References</a>
+    </nav>
+  </header>
+
+  <section aria-labelledby="tools-h">
+    <div class="section-head">
+      <span class="eyebrow">The tools</span>
+      <h2 id="tools-h">Five tools, one job each</h2>
+    </div>
+    <div class="panel tools">
+      <div class="tool"><b>Marker</b><span>Scans website pages for accessibility problems and gives a score.</span></div>
+      <div class="tool"><b>Notion</b><span>Holds one ticket per site each month, with the to-dos and reports.</span></div>
+      <div class="tool"><b>Claude Code</b><span>The AI assistant our developer uses to fix the code.</span></div>
+      <div class="tool"><b>Make</b><span>Passes scan results into Notion so nobody copies them by hand.</span></div>
+      <div class="tool"><b>Calendar</b><span>Reminds us when each site is due for its scan and rescan.</span></div>
+    </div>
+  </section>
+
+  <section id="cycle" aria-labelledby="cycle-h">
+    <div class="section-head">
+      <span class="eyebrow">The monthly cycle</span>
+      <h2 id="cycle-h">From scan day to client report</h2>
+      <p>Each step shows who does it. The right-hand column shows the Notion ticket's status as it moves along, so anyone can open a ticket and see where a site is.</p>
+    </div>
+    <div class="legend" aria-label="Who does each step">
+      <span class="who"><span class="dot team"></span>Our team</span>
+      <span class="who"><span class="dot auto"></span>Happens automatically</span>
+      <span class="who"><span class="dot client"></span>Client</span>
+    </div>
+
+    <ol class="flow">
+      <li class="step team">
+        <div class="num">1</div>
+        <div class="card">
+          <span class="tag"><span class="dot team"></span>Our team</span>
+          <h3>Scan day arrives</h3>
+          <p>Each site has its own monthly calendar reminder. It lists the site, its 20 pages, last month's ticket, and how many pages are left in this month's budget.</p>
+        </div>
+        <div class="status"></div>
+      </li>
+      <li class="step team">
+        <div class="num">2</div>
+        <div class="card">
+          <span class="tag"><span class="dot team"></span>Our team</span>
+          <h3>Run the scan in Marker</h3>
+          <p>Marker checks the same 20 pages as every other month and scores the site.</p>
+        </div>
+        <div class="status"></div>
+      </li>
+      <li class="step auto">
+        <div class="num">3</div>
+        <div class="card">
+          <span class="tag"><span class="dot auto"></span>Happens automatically</span>
+          <h3>A ticket appears in Notion</h3>
+          <p>One command turns the results into the site's ticket for the month, with one to-do for each type of problem found.</p>
+        </div>
+        <div class="status"><small>Ticket status</small><span class="pill s1">Scanned</span></div>
+      </li>
+      <li class="step team">
+        <div class="num">4</div>
+        <div class="card">
+          <span class="tag"><span class="dot team"></span>Our team</span>
+          <h3>Write the first report</h3>
+          <p>Record the starting score and pages used. Explain what was found, what we'll fix this month, and anything we're holding back and why.</p>
+        </div>
+        <div class="status"><small>Ticket status</small><span class="pill s2">Fixing</span></div>
+      </li>
+      <li class="step team">
+        <div class="num">5</div>
+        <div class="card">
+          <span class="tag"><span class="dot team"></span>Our team</span>
+          <h3>Fix the problems, most serious first</h3>
+          <p>The developer works through each problem type with Claude Code. Nothing goes live until the developer has approved the change.</p>
+        </div>
+        <div class="status"></div>
+      </li>
+      <li class="step team">
+        <div class="num">6</div>
+        <div class="card">
+          <span class="tag"><span class="dot team"></span>Our team</span>
+          <h3>Publish, then check nothing broke</h3>
+          <p>Right after the fixes go live, we run through the key parts of the store: menu, add to cart, checkout, search, forms and login.</p>
+        </div>
+        <div class="status"></div>
+      </li>
+      <li class="step team">
+        <div class="num">7</div>
+        <div class="card">
+          <span class="tag"><span class="dot team"></span>Our team</span>
+          <h3>Rescan only the pages that had problems</h3>
+          <p>Usually around 8 pages instead of 20, which saves budget. Any new problems get added to the same ticket.</p>
+        </div>
+        <div class="status"><small>Ticket status</small><span class="pill s3">Rescanned</span></div>
+      </li>
+      <li class="step decision">
+        <div class="num"><span>?</span></div>
+        <div class="card">
+          <span class="tag" style="color:var(--muted)">Check each problem type</span>
+          <h3>Did the rescan confirm it's fixed on every page?</h3>
+          <div class="branches">
+            <div class="branch"><b class="yes">Yes</b><span>Ticked as resolved on the ticket.</span></div>
+            <div class="branch"><b class="no">Not yet</b><span>Stays open, and the final report says why.</span></div>
+          </div>
+        </div>
+        <div class="status"></div>
+      </li>
+      <li class="step team">
+        <div class="num">8</div>
+        <div class="card">
+          <span class="tag"><span class="dot team"></span>Our team</span>
+          <h3>Write the final report</h3>
+          <p>Score before and after, what was fixed, what's still open, and confirmation that the store still works.</p>
+        </div>
+        <div class="status"><small>Ticket status</small><span class="pill s4">Reported</span></div>
+      </li>
+      <li class="step client">
+        <div class="num">9</div>
+        <div class="card">
+          <span class="tag"><span class="dot client"></span>Client</span>
+          <h3>Client gets the ticket link</h3>
+          <p>They can read both reports on the ticket.</p>
+        </div>
+        <div class="status"><small>Ticket status</small><span class="pill s5">Client notified</span></div>
+      </li>
+    </ol>
+    <div class="loop">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v4.5h-4.5"/></svg>
+      <div class="card">
+        <h3>Next month, the same 20 pages again</h3>
+        <p>Scanning the same pages each time means this month's score and next month's score are a fair comparison.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="budget" aria-labelledby="budget-h">
+    <div class="section-head">
+      <span class="eyebrow">Page budget</span>
+      <h2 id="budget-h">Staying inside 250 pages a month</h2>
+      <p>Our Marker plan covers 250 scanned pages a month across every site. That's why scans are scheduled by hand instead of running automatically. With 5 active sites, a month looks like this:</p>
+    </div>
+    <div class="panel">
+      <div class="bar" role="img" aria-label="250 pages: 100 for full scans, 40 for rescans, 50 buffer, 60 spare">
+        <div class="seg full">100</div>
+        <div class="seg re">40</div>
+        <div class="seg buf">50</div>
+        <div class="seg spare">60</div>
+      </div>
+      <div class="scale" aria-hidden="true"><span>0</span><span>250 pages</span></div>
+      <div class="budget-key">
+        <div class="key"><div class="sw" style="background:var(--team-soft)"></div><b>100</b><span>Full scans: 5 sites × 20 pages</span></div>
+        <div class="key"><div class="sw" style="background:var(--auto-soft)"></div><b>~40</b><span>Rescans: 5 sites × about 8 pages</span></div>
+        <div class="key"><div class="sw" style="background:var(--client-soft)"></div><b>~50</b><span>Buffer for surprises like theme updates or launches</span></div>
+        <div class="key"><div class="sw" style="background-image:repeating-linear-gradient(135deg,transparent 0 4px,var(--line) 4px 5px)"></div><b>~60</b><span>Spare</span></div>
+      </div>
+      <div class="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17.5v.01"/></svg>
+        <p><strong>When we grow to 9 sites</strong>, a month would need about 252 pages, just over the limit. At that point we'll use lighter scans for sites that share a theme, or move quieter sites to every other month. Each ticket records the pages it used, and a Notion view adds them up by month, so we check it before booking the next scan.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="pages" aria-labelledby="pages-h">
+    <div class="section-head">
+      <span class="eyebrow">Scan scope</span>
+      <h2 id="pages-h">Which 20 pages we check</h2>
+      <p>Most pages on a store are built from a few shared templates, so checking a couple of each type covers the whole site. The list stays the same every month.</p>
+    </div>
+    <div class="pages">
+      <div class="page"><b>1</b><strong>Home</strong><span>Homepage</span></div>
+      <div class="page"><b>3</b><strong>Inner pages</strong><span>About, Contact, Store Locator</span></div>
+      <div class="page"><b>3</b><strong>Product</strong><span>Main layout + 2 most-used variations</span></div>
+      <div class="page"><b>3</b><strong>Collection</strong><span>Main layout + 2 most-used variations</span></div>
+      <div class="page"><b>1</b><strong>Search</strong><span>A search that returns products</span></div>
+      <div class="page"><b>1</b><strong>Blog list</strong><span>Main blog page</span></div>
+      <div class="page"><b>1</b><strong>Article</strong><span>One typical article</span></div>
+      <div class="page"><b>4</b><strong>Landing pages</strong><span>Top 4 by traffic (to be picked)</span></div>
+      <div class="page"><b>2</b><strong>Account</strong><span>Login and register</span></div>
+      <div class="page"><b>1</b><strong>Cart</strong><span>Cart page or slide-out cart</span></div>
+    </div>
+  </section>
+
+  <section id="calendar" aria-labelledby="cal-h">
+    <div class="section-head">
+      <span class="eyebrow">Scan schedule</span>
+      <h2 id="cal-h">A staggered month</h2>
+      <p>Scans are spread out so no week has more than two full scans. Each rescan is booked about a week after its scan, and moves if fixes take longer.</p>
+    </div>
+    <div class="weeks">
+      <div class="week"><h3>Week 1</h3>
+        <div class="slot"><small>First scans</small><div class="chip first">Project A: sites 1 and 2</div></div>
+        <div class="slot"><small>Rescans</small><div class="chip none">None</div></div>
+      </div>
+      <div class="week"><h3>Week 2</h3>
+        <div class="slot"><small>First scans</small><div class="chip first">Project A: site 3</div></div>
+        <div class="slot"><small>Rescans</small><div class="chip re">Project A: sites 1 and 2</div></div>
+      </div>
+      <div class="week"><h3>Week 3</h3>
+        <div class="slot"><small>First scans</small><div class="chip first">Project B</div><div class="chip first">Project C</div></div>
+        <div class="slot"><small>Rescans</small><div class="chip re">Project A: site 3</div></div>
+      </div>
+      <div class="week"><h3>Week 4</h3>
+        <div class="slot"><small>First scans</small><div class="chip none">None</div></div>
+        <div class="slot"><small>Rescans</small><div class="chip re">Project B</div><div class="chip re">Project C</div><div class="chip buf">Buffer</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ticket" aria-labelledby="ticket-h">
+    <div class="section-head">
+      <span class="eyebrow">Notion ticket</span>
+      <h2 id="ticket-h">One ticket per site, per month</h2>
+      <p>Inside it, one to-do for each type of problem, with the most serious at the top. The pages affected are listed inside each to-do rather than as separate tasks.</p>
+    </div>
+    <div class="panel ticket">
+      <div class="pipeline" aria-label="Ticket status stages">
+        <span class="pill s1">Scanned</span><span class="arrow" aria-hidden="true">→</span>
+        <span class="pill s2">Fixing</span><span class="arrow" aria-hidden="true">→</span>
+        <span class="pill s3">Rescanned</span><span class="arrow" aria-hidden="true">→</span>
+        <span class="pill s4">Reported</span><span class="arrow" aria-hidden="true">→</span>
+        <span class="pill s5">Client notified</span>
+      </div>
+      <div class="ticket-top">
+        <h3>What a ticket holds</h3>
+        <span class="example">Example to-dos</span>
+      </div>
+      <div class="fields">
+        <div class="field"><small>Score</small><b>Before → after</b></div>
+        <div class="field"><small>Dates</small><b>Scan and rescan</b></div>
+        <div class="field"><small>Budget</small><b>Pages used</b></div>
+      </div>
+      <ul class="todos">
+        <li class="todo"><div class="box" aria-hidden="true"></div><div>Images missing text descriptions<span>Pages affected, what changed, or why it's on hold</span></div><span class="sev crit">Critical</span></li>
+        <li class="todo"><div class="box" aria-hidden="true"></div><div>Text with low color contrast<span>Ticked only after the rescan confirms it's fixed</span></div><span class="sev serious">Serious</span></li>
+        <li class="todo"><div class="box" aria-hidden="true"></div><div>Headings out of order<span>Links straight to the problem in Marker</span></div><span class="sev moderate">Moderate</span></li>
+      </ul>
+      <p class="muted" style="font-size:.92rem">Severity levels, most to least serious: Critical, Serious, Moderate, Minor.</p>
+    </div>
+  </section>
+
+  <section id="reports" aria-labelledby="reports-h">
+    <div class="section-head">
+      <span class="eyebrow">Reporting</span>
+      <h2 id="reports-h">What the client reads</h2>
+      <p>Both reports live on the ticket, so the client has one link for the whole month.</p>
+    </div>
+    <div class="two">
+      <div class="panel report">
+        <span class="eyebrow">After the first scan</span>
+        <h3>Initial findings</h3>
+        <ul>
+          <li>The site's accessibility score</li>
+          <li>Problem types by severity, with pages affected</li>
+          <li>What we'll fix this month</li>
+          <li>Anything held back, and why</li>
+        </ul>
+      </div>
+      <div class="panel report">
+        <span class="eyebrow">After the rescan</span>
+        <h3>Final report</h3>
+        <ul>
+          <li>Score before and after</li>
+          <li>What was fixed, one line each</li>
+          <li>What's still open, and why</li>
+          <li>Any new problems found this month</li>
+          <li>Store safety check results</li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel" style="display:grid;gap:14px">
+      <div class="section-head">
+        <h3>The store safety check</h3>
+        <p>Most accessibility fixes aren't visible, so what clients care about most is that nothing broke. After every update we check these and list them as passed:</p>
+      </div>
+      <ul class="checks">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Main menu and mobile menu</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Product page: picking options and adding to cart</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Cart: changing quantity and removing items</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Checkout starts from the cart</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Search returns results</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Contact and newsletter forms send</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg><span>Login and register</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="auto" aria-labelledby="auto-h">
+    <div class="section-head">
+      <span class="eyebrow">Behind the scenes</span>
+      <h2 id="auto-h">How results reach Notion</h2>
+      <p>Marker doesn't send a signal when a scan finishes, so our developer starts this hand-off with one command once the scan is done. Everything after that is automatic.</p>
+    </div>
+    <div class="panel pipe" style="padding:0">
+      <div class="hop"><span class="eyebrow">1 · Marker</span><b>Scan finishes</b><span>Started by hand in Marker.</span></div>
+      <div class="hop"><span class="eyebrow">2 · Claude Code</span><b>One command</b><span>Reads the failing checks for that site.</span></div>
+      <div class="hop"><span class="eyebrow">3 · Make</span><b>Sorts them</b><span>Finds the site, finds or creates this month's ticket, skips anything already added.</span></div>
+      <div class="hop"><span class="eyebrow">4 · Notion</span><b>Ticket and to-dos</b><span>Ready for the team to write the first report.</span></div>
+    </div>
+    <div class="two">
+      <div class="panel fixes">
+        <h3>If a ticket doesn't show up</h3>
+        <div class="fix"><b>Make handles one job at a time</b><span>A failed job waits in Make's "Incomplete executions" list, and new ones queue behind it until it's cleared.</span></div>
+        <div class="fix"><b>Notion must stay connected to Make</b><span>The Sites, Accessibility Scan and Accessibility Issues databases all need the Make connection.</span></div>
+        <div class="fix"><b>The report template is added by hand</b><span>The ticket arrives without its page layout, so we apply the template at step 4.</span></div>
+      </div>
+      <div class="panel fixes">
+        <h3>Adding a new site</h3>
+        <ol class="steps-list">
+          <li><span>Add the site to the Sites database in Notion with its name, project, web address and Marker project ID. Without this, no ticket is created.</span></li>
+          <li><span>If it belongs to a new project, add that project as an option on Accessibility Scan.</span></li>
+          <li><span>Turn off automatic scans for the site in Marker, and create its calendar reminders.</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section id="refs" aria-labelledby="refs-h">
+    <div class="section-head">
+      <span class="eyebrow">References</span>
+      <h2 id="refs-h">Where everything lives</h2>
+    </div>
+    <div class="panel refs">
+      <a href="https://docs.google.com/document/d/19KfVoPB--WkMJH2IDA7GocpCX5LzYNtOYG9oQYPNWn4/edit?usp=sharing">Accessibility Report Template (Google Doc)</a>
+      <a href="https://app.notion.com/p/Accessibility-Scan-Template-3eaa4fe3889780f38c36ff9e527cfc5e">Accessibility Scan Template (Notion)</a>
+      <a href="https://app.notion.com/p/MFTR-Marker-Accessibility-3e2a4fe3889780d3a1f6fd88f39000ba">Full technical plan: MFTR Marker Accessibility (Notion)</a>
+      <p><strong>Make scenario:</strong> <span class="muted">"Marker scan → Notion ticket", under Make → Scenarios</span></p>
+    </div>
+  </section>
+
+  <footer>Plain-language summary of the MFTR Marker Accessibility plan · Manufactur · September 2026</footer>
+</div>
+
+</body></html>
